@@ -100,8 +100,8 @@ fn spawn_association_acceptor() -> Result<(std::thread::JoinHandle<Result<()>>, 
     Ok((h, addr))
 }
 
-/// Run an SCP and an SCU concurrently,
-/// negotiate an association with distinct transfer syntaxes
+/// Run an association requestor and an association acceptor concurrently,
+/// negotiate an association with C-Get, MR image storage and MG storage presentation contexts, role selection items for each of those,
 /// and release it.
 #[test]
 fn test_build_and_establish_association_for_c_get() {
