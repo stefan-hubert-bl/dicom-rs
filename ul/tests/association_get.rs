@@ -10,27 +10,10 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync 
 static REQUESTOR_AE_TITLE: &str = "C-GET-REQUESTOR";
 static ACCEPTOR_AE_TITLE: &str = "C-GET-ACCEPTOR";
 
-fn role_selection_items_in(
-    user_variables:  &[UserVariableItem],
-) -> Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)> {
-    user_variables
-        .iter()
-        .filter_map(|item| match item {
-            UserVariableItem::RoleSelectionItem {
-                sop_class_uid,
-                scu_role_support,
-                scp_role_support,
-            } => Some((sop_class_uid.as_str(), scu_role_support, scp_role_support)),
-            _ => None,
-        })
-        .collect()
-}
-
-fn role_selection_items(
+fn role_selection_items_accepted_for(
     association: &impl Association,
 ) -> Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)> {
-    role_selection_items_in(association
-        .user_variables())
+    pdu::role_selection_items_in(association.user_variables())
 }
 
 const IMPLICIT_VR_LE: &str = "1.2.840.10008.1.2";
@@ -81,12 +64,12 @@ fn spawn_association_acceptor() -> Result<(std::thread::JoinHandle<Result<()>>, 
                     // guaranteed to be MR image storage
                     assert_eq!(transfer_syntax, JPEG_BASELINE);
                 }
-                _ => panic!("unexpected presentation context {pc:?}"),
+                _ => panic!("unexpected presentation context {:?}", pc),
             }
         }
 
         assert_eq!(
-            role_selection_items(&association),
+            role_selection_items_accepted_for(&association),
             vec![
                 (
                     SOP_CLASS_STUDY_ROOT_QR_GET,
@@ -179,12 +162,12 @@ fn test_build_and_establish_association_for_c_get() {
                 // guaranteed to be MR image storage
                 assert_eq!(transfer_syntax, JPEG_BASELINE);
             }
-            _ => panic!("unexpected presentation context {pc:?}"),
+            _ => panic!("unexpected presentation context {:?}", pc),
         }
     }
 
     assert_eq!(
-        role_selection_items(&association),
+        role_selection_items_accepted_for(&association),
         vec![
             (
                 SOP_CLASS_STUDY_ROOT_QR_GET,

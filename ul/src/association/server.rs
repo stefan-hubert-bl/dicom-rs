@@ -28,7 +28,7 @@ use crate::{
         write_pdu, AbortRQServiceProviderReason, AbortRQSource, AssociationAC, AssociationRJ,
         AssociationRJResult, AssociationRJServiceUserReason, AssociationRJSource, AssociationRQ,
         Pdu, PresentationContextResult, PresentationContextResultReason, UserIdentity,
-        UserVariableItem, DEFAULT_MAX_PDU, PDU_HEADER_SIZE,ScuRoleSupport, ScpRoleSupport
+        UserVariableItem, DEFAULT_MAX_PDU, PDU_HEADER_SIZE,ScuRoleSupport, ScpRoleSupport, role_selection_items_in
     },
     IMPLEMENTATION_CLASS_UID, IMPLEMENTATION_VERSION_NAME,
 };
@@ -920,21 +920,6 @@ where
     it.into_iter().find(|ts| is_supported(ts.as_ref()))
 }
 
-fn role_selection_items_in(
-    user_variables:  &[UserVariableItem],
-) -> Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)> {
-    user_variables
-        .iter()
-        .filter_map(|item| match item {
-            UserVariableItem::RoleSelectionItem {
-                sop_class_uid,
-                scu_role_support,
-                scp_role_support,
-            } => Some((sop_class_uid.as_str(), scu_role_support, scp_role_support)),
-            _ => None,
-        })
-        .collect()
-}
 
 fn make_user_variables_for_association_ac( max_pdu_length: u32, role_selection_items: Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)>) -> Vec<UserVariableItem> {
     let mut result = Vec::new();
