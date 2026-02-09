@@ -846,6 +846,55 @@ fn read_pdu_variable(mut buf: impl Buf, codec: &dyn TextCodec) -> Result<Option<
                             }
                         }
                     }
+                    0x54 => {
+                        // Role Selection Sub-Item
+
+                        // 5-6 - UID-length
+                        if bytes.remaining() < 2 {
+                            return Ok(None);
+                        }
+                        let uid_length = bytes.get_u16();
+
+                        // 7-xxx - SOP Class UID
+                        if bytes.remaining() < uid_length as usize {
+                            return Ok(None);
+                        }
+                        let uid_bytes = bytes.copy_to_bytes(uid_length as usize);
+                        let sop_class_uid = codec
+                            .decode(uid_bytes.as_ref())
+                            .context(DecodeTextSnafu {
+                                field: "SOP-class-uid",
+                            })?
+                            .to_string();
+
+                        // SCU-role (1 byte)
+                        if bytes.remaining() < 1 {
+                            return Ok(None);
+                        }
+                        let scu_role_byte = bytes.get_u8();
+                        let scu_role_support = if scu_role_byte == 0x01 {
+                            ScuRoleSupport::Support
+                        } else {
+                            ScuRoleSupport::NonSupport
+                        };
+
+                        // SCP-role (1 byte)
+                        if bytes.remaining() < 1 {
+                            return Ok(None);
+                        }
+                        let scp_role_byte = bytes.get_u8();
+                        let scp_role_support = if scp_role_byte == 0x01 {
+                            ScpRoleSupport::Support
+                        } else {
+                            ScpRoleSupport::NonSupport
+                        };
+
+                        user_variables.push(UserVariableItem::RoleSelectionItem {
+                            sop_class_uid,
+                            scu_role_support,
+                            scp_role_support,
+                        });
+                    }
                     _ => {
                         if bytes.remaining() < item_length as usize {
                             return Ok(None);

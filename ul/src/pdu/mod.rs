@@ -473,6 +473,19 @@ pub enum PduVariableItem {
 }
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]
+pub enum ScuRoleSupport{
+    Support,
+    NonSupport,
+}
+
+#[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]
+pub enum ScpRoleSupport{
+    Support,
+    NonSupport,
+}
+
+
+#[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]
 pub enum UserVariableItem {
     Unknown(u8, Vec<u8>),
     MaxLength(u32),
@@ -480,6 +493,11 @@ pub enum UserVariableItem {
     ImplementationVersionName(String),
     SopClassExtendedNegotiationSubItem(String, Vec<u8>),
     UserIdentityItem(UserIdentity),
+    RoleSelectionItem{
+        sop_class_uid: String,
+        scu_role_support: ScuRoleSupport,
+        scp_role_support: ScpRoleSupport,
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]

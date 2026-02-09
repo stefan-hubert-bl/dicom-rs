@@ -16,7 +16,8 @@ use crate::{
     AeAddr, IMPLEMENTATION_CLASS_UID, IMPLEMENTATION_VERSION_NAME, association::{
         Association, CloseSocket, NegotiatedOptions, SocketOptions, SyncAssociation, encode_pdu, private::SyncAssociationSealed, read_pdu_from_wire
     }, pdu::{
-        AbortRQSource, AssociationAC, AssociationRQ, DEFAULT_MAX_PDU, LARGE_PDU_SIZE, PDU_HEADER_SIZE, Pdu, PresentationContextNegotiated, PresentationContextProposed, PresentationContextResultReason, UserIdentity, UserIdentityType, UserVariableItem, write_pdu
+        AbortRQSource, AssociationAC, AssociationRQ, DEFAULT_MAX_PDU, LARGE_PDU_SIZE, PDU_HEADER_SIZE, Pdu, PresentationContextNegotiated, PresentationContextProposed, PresentationContextResultReason, UserIdentity, UserIdentityType, UserVariableItem, write_pdu,
+        ScuRoleSupport, ScpRoleSupport
     }
 };
 use snafu::{ensure, ResultExt};
@@ -220,6 +221,8 @@ pub struct ClientAssociationOptions<'a> {
     application_context_name: Cow<'a, str>,
     /// the list of requested presentation contexts
     presentation_contexts: Vec<(Cow<'a, str>, Vec<Cow<'a, str>>)>,
+    /// role selection items
+    role_selection_items: Vec<(Cow<'a, str>, ScuRoleSupport, ScpRoleSupport)>,
     /// the expected protocol version
     protocol_version: u16,
     /// the maximum PDU length requested for receiving PDUs
@@ -257,6 +260,8 @@ impl Default for ClientAssociationOptions<'_> {
             application_context_name: "1.2.840.10008.3.1.1.1".into(),
             // the list of requested presentation contexts
             presentation_contexts: Vec::new(),
+            // role selection items
+            role_selection_items: Vec::new(),
             protocol_version: 1,
             max_pdu_length: DEFAULT_MAX_PDU,
             strict: true,
@@ -343,6 +348,21 @@ impl<'a> ClientAssociationOptions<'a> {
         let default_transfer_syntaxes: Vec<Cow<'a, str>> =
             vec!["1.2.840.10008.1.2.1".into(), "1.2.840.10008.1.2".into()];
         self.with_presentation_context(abstract_syntax_uid.into(), default_transfer_syntaxes)
+    }
+
+    /// Include this role selection item in the association request.
+    pub fn with_role_selection_item<T>(
+        mut self,
+        sop_class_uid: T,
+        scu_role_support: ScuRoleSupport,
+        scp_role_support: ScpRoleSupport,
+    ) -> Self
+    where
+        T: Into<Cow<'a, str>>,
+    {
+
+       self.role_selection_items.push((trim_uid(sop_class_uid.into()), scu_role_support, scp_role_support));
+       self
     }
 
     /// Override the maximum PDU length
@@ -716,6 +736,15 @@ impl<'a> ClientAssociationOptions<'a> {
             jwt.as_deref(),
         ) {
             user_variables.push(UserVariableItem::UserIdentityItem(user_identity));
+        }
+
+        // Add role selection items
+        for ( sop_class_uid, scu_role_support, scp_role_support) in &self.role_selection_items  {
+            user_variables.push(
+                UserVariableItem::RoleSelectionItem { 
+                    sop_class_uid: sop_class_uid.to_string(), 
+                    scu_role_support: scu_role_support.clone(), 
+                    scp_role_support: scp_role_support.clone() });
         }
 
         Ok((
