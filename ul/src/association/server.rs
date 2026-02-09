@@ -7,7 +7,6 @@
 use bytes::BytesMut;
 use std::borrow::Cow;
 use std::time::Duration;
-use std::vec;
 use std::{io::Write, net::TcpStream};
 
 use dicom_encoding::transfer_syntax::TransferSyntaxIndex;

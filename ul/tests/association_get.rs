@@ -2,7 +2,7 @@ use dicom_ul::{
     association::{
         client::ClientAssociationOptions, Association, ServerAssociationOptions, SyncAssociation,
     },
-    pdu::{Pdu, PresentationContextNegotiated, ScpRoleSupport, ScuRoleSupport, UserVariableItem},
+    pdu::{Pdu, PresentationContextNegotiated, ScpRoleSupport, ScuRoleSupport, role_selection_items_in},
 };
 use std::net::SocketAddr;
 
@@ -13,7 +13,7 @@ static ACCEPTOR_AE_TITLE: &str = "C-GET-ACCEPTOR";
 fn role_selection_items_accepted_for(
     association: &impl Association,
 ) -> Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)> {
-    pdu::role_selection_items_in(association.user_variables())
+    role_selection_items_in(association.user_variables())
 }
 
 const IMPLICIT_VR_LE: &str = "1.2.840.10008.1.2";
@@ -45,7 +45,6 @@ fn spawn_association_acceptor() -> Result<(std::thread::JoinHandle<Result<()>>, 
                     transfer_syntax,
                     ..
                 } if abstract_syntax == SOP_CLASS_STUDY_ROOT_QR_GET => {
-                    // guaranteed to be MR image storage
                     assert_eq!(transfer_syntax, IMPLICIT_VR_LE);
                 }
                 PresentationContextNegotiated {
@@ -53,7 +52,6 @@ fn spawn_association_acceptor() -> Result<(std::thread::JoinHandle<Result<()>>, 
                     transfer_syntax,
                     ..
                 } if abstract_syntax == SOP_CLASS_MR_IMAGE_STORAGE => {
-                    // guaranteed to be MR image storage
                     assert_eq!(transfer_syntax, IMPLICIT_VR_LE);
                 }
                 PresentationContextNegotiated {
@@ -61,7 +59,6 @@ fn spawn_association_acceptor() -> Result<(std::thread::JoinHandle<Result<()>>, 
                     transfer_syntax,
                     ..
                 } if abstract_syntax == SOP_CLASS_DIGITAL_MG_STORAGE => {
-                    // guaranteed to be MR image storage
                     assert_eq!(transfer_syntax, JPEG_BASELINE);
                 }
                 _ => panic!("unexpected presentation context {:?}", pc),
@@ -143,7 +140,6 @@ fn test_build_and_establish_association_for_c_get() {
                 transfer_syntax,
                 ..
             } if abstract_syntax == SOP_CLASS_STUDY_ROOT_QR_GET => {
-                // guaranteed to be MR image storage
                 assert_eq!(transfer_syntax, IMPLICIT_VR_LE);
             }
             PresentationContextNegotiated {
@@ -151,7 +147,6 @@ fn test_build_and_establish_association_for_c_get() {
                 transfer_syntax,
                 ..
             } if abstract_syntax == SOP_CLASS_MR_IMAGE_STORAGE => {
-                // guaranteed to be MR image storage
                 assert_eq!(transfer_syntax, IMPLICIT_VR_LE);
             }
             PresentationContextNegotiated {
@@ -159,8 +154,7 @@ fn test_build_and_establish_association_for_c_get() {
                 transfer_syntax,
                 ..
             } if abstract_syntax == SOP_CLASS_DIGITAL_MG_STORAGE => {
-                // guaranteed to be MR image storage
-                assert_eq!(transfer_syntax, JPEG_BASELINE);
+               assert_eq!(transfer_syntax, JPEG_BASELINE);
             }
             _ => panic!("unexpected presentation context {:?}", pc),
         }

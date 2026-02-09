@@ -1092,14 +1092,14 @@ fn write_pdu_variable_user_variables(
 
                         // SCU-role (1 byte)
                         writer
-                            .write_u8(if let ScuRoleSupport::Support = scu_role_support { 0x01 } else { 0x00 })
+                            .write_u8(match  scu_role_support { ScuRoleSupport::Support => 0x01, ScuRoleSupport::NonSupport => 0x00 })
                             .context(WriteFieldSnafu {
                                 field: "SCU-role",
                             })?;
 
                         // SCP-role (1 byte)
                         writer
-                            .write_u8(if let ScpRoleSupport::Support = scp_role_support { 0x01 } else { 0x00 })
+                            .write_u8(match  scp_role_support { ScpRoleSupport::Support => 0x01, ScpRoleSupport::NonSupport => 0x00 })
                             .context(WriteFieldSnafu {
                                 field: "SCP-role",
                             })
