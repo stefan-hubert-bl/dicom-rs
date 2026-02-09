@@ -473,6 +473,19 @@ pub enum PduVariableItem {
 }
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]
+pub enum ScuRoleSupport{
+    Support,
+    NonSupport,
+}
+
+#[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]
+pub enum ScpRoleSupport{
+    Support,
+    NonSupport,
+}
+
+
+#[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]
 pub enum UserVariableItem {
     Unknown(u8, Vec<u8>),
     MaxLength(u32),
@@ -480,6 +493,27 @@ pub enum UserVariableItem {
     ImplementationVersionName(String),
     SopClassExtendedNegotiationSubItem(String, Vec<u8>),
     UserIdentityItem(UserIdentity),
+    RoleSelectionItem{
+        sop_class_uid: String,
+        scu_role_support: ScuRoleSupport,
+        scp_role_support: ScpRoleSupport,
+    }
+}
+
+pub fn role_selection_items_in(
+    user_variables:  &[UserVariableItem],
+) -> Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)> {
+    user_variables
+        .iter()
+        .filter_map(|item| match item {
+            UserVariableItem::RoleSelectionItem {
+                sop_class_uid,
+                scu_role_support,
+                scp_role_support,
+            } => Some((sop_class_uid.as_str(), scu_role_support, scp_role_support)),
+            _ => None,
+        })
+        .collect()
 }
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Hash, Debug)]

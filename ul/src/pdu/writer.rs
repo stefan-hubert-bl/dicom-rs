@@ -1054,6 +1054,60 @@ fn write_pdu_variable_user_variables(
                         name: "Item-length",
                     })?;
                 }
+                UserVariableItem::RoleSelectionItem {
+                    sop_class_uid,
+                    scu_role_support,
+                    scp_role_support,
+                } => {
+                    // 1 - Item-type - 54H
+                    writer
+                        .write_u8(0x54)
+                        .context(WriteFieldSnafu { field: "Item-type" })?;
+
+                    // 2 - Reserved - This reserved field shall be sent with a value 00H but not
+                    // tested to this value when received.
+                    writer
+                        .write_u8(0x00)
+                        .context(WriteReservedSnafu { bytes: 1_u32 })?;
+
+                    write_chunk_u16(writer, |writer| {
+                        // 5-6 - UID-length
+                        let uid_bytes = codec.encode(sop_class_uid).context(
+                            EncodeFieldSnafu {
+                                field: "SOP-class-uid",
+                            },
+                        )?;
+                        writer
+                            .write_u16::<BigEndian>(uid_bytes.len() as u16)
+                            .context(WriteFieldSnafu {
+                                field: "UID-length",
+                            })?;
+
+                        // 7-xxx - SOP Class UID
+                        writer
+                            .write_all(&uid_bytes)
+                            .context(WriteFieldSnafu {
+                                field: "SOP-class-uid",
+                            })?;
+
+                        // SCU-role (1 byte)
+                        writer
+                            .write_u8(match  scu_role_support { ScuRoleSupport::Support => 0x01, ScuRoleSupport::NonSupport => 0x00 })
+                            .context(WriteFieldSnafu {
+                                field: "SCU-role",
+                            })?;
+
+                        // SCP-role (1 byte)
+                        writer
+                            .write_u8(match  scp_role_support { ScpRoleSupport::Support => 0x01, ScpRoleSupport::NonSupport => 0x00 })
+                            .context(WriteFieldSnafu {
+                                field: "SCP-role",
+                            })
+                    })
+                    .context(WriteChunkSnafu {
+                        name: "Role Selection",
+                    })?;
+                }
                 UserVariableItem::Unknown(item_type, data) => {
                     writer
                         .write_u8(*item_type)

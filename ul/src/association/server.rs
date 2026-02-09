@@ -27,7 +27,7 @@ use crate::{
         write_pdu, AbortRQServiceProviderReason, AbortRQSource, AssociationAC, AssociationRJ,
         AssociationRJResult, AssociationRJServiceUserReason, AssociationRJSource, AssociationRQ,
         Pdu, PresentationContextResult, PresentationContextResultReason, UserIdentity,
-        UserVariableItem, DEFAULT_MAX_PDU, PDU_HEADER_SIZE,
+        UserVariableItem, DEFAULT_MAX_PDU, PDU_HEADER_SIZE,ScuRoleSupport, ScpRoleSupport, role_selection_items_in
     },
     IMPLEMENTATION_CLASS_UID, IMPLEMENTATION_VERSION_NAME,
 };
@@ -602,15 +602,7 @@ where
                         .collect(),
                     calling_ae_title: calling_ae_title.clone(),
                     called_ae_title,
-                    user_variables: vec![
-                        UserVariableItem::MaxLength(self.max_pdu_length),
-                        UserVariableItem::ImplementationClassUID(
-                            IMPLEMENTATION_CLASS_UID.to_string(),
-                        ),
-                        UserVariableItem::ImplementationVersionName(
-                            IMPLEMENTATION_VERSION_NAME.to_string(),
-                        ),
-                    ],
+                    user_variables:  make_user_variables_for_association_ac(self.max_pdu_length, role_selection_items_in(&user_variables))
                 });
                 Ok((pdu, NegotiatedOptions{
                     peer_max_pdu_length: requestor_max_pdu_length,
@@ -927,6 +919,24 @@ where
     it.into_iter().find(|ts| is_supported(ts.as_ref()))
 }
 
+
+fn make_user_variables_for_association_ac( max_pdu_length: u32, role_selection_items: Vec<(&str, &ScuRoleSupport, &ScpRoleSupport)>) -> Vec<UserVariableItem> {
+    let mut result = Vec::new();
+
+    result.push(UserVariableItem::MaxLength(max_pdu_length));
+    result.push(UserVariableItem::ImplementationClassUID(IMPLEMENTATION_CLASS_UID.to_string()));
+    result.push(UserVariableItem::ImplementationVersionName(IMPLEMENTATION_VERSION_NAME.to_string()));
+
+    for (sop_class_uid, scu_role_support, scp_role_support) in role_selection_items {
+        result.push(UserVariableItem::RoleSelectionItem {
+            sop_class_uid: sop_class_uid.to_string(),
+            scu_role_support: scu_role_support.clone(),
+            scp_role_support: scp_role_support.clone(),
+        });
+    }
+
+    result
+}
 
 #[cfg(feature = "async")]
 impl<A> ServerAssociationOptions<'_, A>

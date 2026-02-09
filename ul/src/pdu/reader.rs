@@ -846,6 +846,62 @@ fn read_pdu_variable(mut buf: impl Buf, codec: &dyn TextCodec) -> Result<Option<
                             }
                         }
                     }
+                    0x54 => {
+                        // Role Selection Sub-Item
+
+                        // 5-6 - UID-length
+                        if bytes.remaining() < 2 {
+                            return Ok(None);
+                        }
+                        let uid_length = bytes.get_u16();
+
+                        // 7-xxx - SOP Class UID
+                        if bytes.remaining() < uid_length as usize {
+                            return Ok(None);
+                        }
+                        let uid_bytes = bytes.copy_to_bytes(uid_length as usize);
+                        let sop_class_uid = codec
+                            .decode(uid_bytes.as_ref())
+                            .context(DecodeTextSnafu {
+                                field: "SOP-class-uid",
+                            })?
+                            .to_string();
+
+                        // SCU-role (1 byte)
+                        if bytes.remaining() < 1 {
+                            return Ok(None);
+                        }
+                        let scu_role_support = match bytes.get_u8()
+                        {                            
+                            0x00 => ScuRoleSupport::NonSupport ,
+                            0x01 => ScuRoleSupport::Support ,
+                            v =>  {
+                                warn!("Unknown SCU-Role code {}", v);
+                                  return Ok(None);
+                          }
+                        };
+
+                        // SCP-role (1 byte)
+                        if bytes.remaining() < 1 {
+                            return Ok(None);
+                        }
+
+                        let scp_role_support = match bytes.get_u8()
+                        {                            
+                            0x00 => ScpRoleSupport::NonSupport ,
+                            0x01 => ScpRoleSupport::Support ,
+                            v =>  {
+                                warn!("Unknown SCP-Role code {}", v);
+                                return Ok(None);
+                            }
+                        };
+
+                        user_variables.push(UserVariableItem::RoleSelectionItem {
+                            sop_class_uid,
+                            scu_role_support,
+                            scp_role_support,
+                        });
+                    }
                     _ => {
                         if bytes.remaining() < item_length as usize {
                             return Ok(None);
